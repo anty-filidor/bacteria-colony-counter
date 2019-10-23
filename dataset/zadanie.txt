@@ -1,0 +1,11 @@
+Zadanie:
+- zaproponować pomysły na rozwiązanie problemu automatycznego zliczania kolonii z jak najmniejszą ilością parametrów wejściowych (idealna sytuacja: wejście - obraz z szalką Petriego, wyjście - ilość kolonii);
+- rozwiązanie powinno obejmować: rozpoznanie na obrazie miejsca, w którym znajduje się szalka; znalezienie kolonii i ich zliczenie);
+- przykładowe narzędzie rozwiązujące problem: http://opencfu.sourceforge.net/
+- przykładowe zdjęcia załączone obok
+
+Wyjaśnienia do treści:
+
+- szalka Petriego - to naczynie, na którym rosną bakterie w formie kolonii. W przypadku zdjęć za szalke Petriego uważamy duży okrag, na którym znajdują się punkty, czyli kolonie bakterii,
+- "kolonia" - to kolonia bakterii, czyli grupa bakterii rosnących bardzo blisko siebie, na zdjęciach kolonie widoczne sa jako charakterystyczne punkty. Często zdarza sie, że kolonie bakterii mogą sie ze soba zlewać, czyli że punkty stykają się ze sobą lub przenikają sie nawzajem (szczególnie widoczne na zdjeciach nr 4 i 5). Istotne jest, zeby takie przypadki równiez rozpoznac - w  miarę mozliwości uwzglednić liczbę kolonii znajdujacych się w takich konglomeratach.
+Definicja biologiczna kolonii bakterii - to skupisko bakterii widoczne gołym okiem (w formie charakterystycznych punktów) powstałych w wyniku podziałów jednej komórki bakteryjnej (czyli de facto z jednej bakterii).
