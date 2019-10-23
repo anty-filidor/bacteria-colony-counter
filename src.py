@@ -7,11 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from skimage import color, filters, exposure, feature, morphology, segmentation, measure
-from scipy import ndimage as ndi
 
 # load data
-
-path_to_dataset = '/Users/michal/PycharmProjects/bacteria_colony_counter/dataset/*.jpg'
+path_to_dataset = '/Users/michal/PycharmProjects/bacteria_colony_counter/dataset/cropped/*.png'
 
 images = {}  # dictionary to keep images
 paths = glob(path_to_dataset)
@@ -21,8 +19,8 @@ for path in paths:
     name = int(path.split('/')[-1].split('.')[0])
 
     image = im.imread(path)
-    image = color.rgb2gray(image)
-    image = (image * 255).astype('uint16')
+    #image = color.rgb2gray(image)
+    #image = (image * 255).astype('uint16')
 
     images.update({name: image})
 
@@ -35,7 +33,9 @@ for image in images.values():
 '''
 
 
-im = images[1]
+
+image_original = images[1]
+im = image_original
 show_gray(im, 'normal')
 
 im = exposure.equalize_adapthist(im)
@@ -61,7 +61,7 @@ show_gray(im, 'eroded')
 labels = measure.label(im)
 image_label_overlay = color.label2rgb(labels, image=im)
 fig, ax = plt.subplots(figsize=(10, 6))
-ax.imshow(images[1])
+ax.imshow(image_original)
 
 for region in measure.regionprops(labels):
     # take regions with large enough areas
