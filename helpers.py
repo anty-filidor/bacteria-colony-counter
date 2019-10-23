@@ -30,7 +30,7 @@ def crop_image(image_to_crop, track_progress=False):
     :param image_to_crop: image to crop
     :param track_progress: boolean value; default False; if true stats and images from each step of processing are
     being shown
-    :return: cropped image
+    :return: cropped image and coords to crop
     """
 
     # preprocess image
@@ -66,17 +66,21 @@ def crop_image(image_to_crop, track_progress=False):
         plt.title('Detected petri dish')
         plt.show()
 
+    top_y = abs(int(cy - r))
+    down_y = int(cy + r)
+    left_x = abs(int(cx - r))
+    right_x = int(cx + r)
     # Crop image
     if track_progress:
         print('Image shape: ', image_to_crop.shape)
         print('Detected dish: x_center - ', int(cx), ' y_center - ', int(cy), ' radius - ', int(r))
-        print('Cropping to shape: [', abs(int(cy - r)), ':', int(cy + r), ',', abs(int(cx - r)), ':', int(cx + r), ']')
+        print('Cropping to shape: [', top_y, ':', down_y, ',', left_x, ':', right_x, ']')
 
-    final_image = image_to_crop[abs(int(cy - r)):int(cy + r), abs(int(cx - r)):int(cx + r)]
+    final_image = image_to_crop[top_y:down_y, left_x:right_x]
 
     if track_progress:
         show_gray(final_image, 'cropped')
 
-    return final_image
+    return final_image, [top_y, down_y, left_x, right_x]
 
 

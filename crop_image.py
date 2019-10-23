@@ -18,19 +18,26 @@ for path in paths:
 
     # read file
     file = im.imread(path)
-    file = color.rgb2gray(file)
-    file = np.array(file * 255).astype('uint16')
-
     images.update({name: file})
 
 
 # crop images
 os.mkdir(path_to_dataset + '/cropped')
 for name, image in tqdm(images.items()):
-    cropped = crop_image(image, track_progress=False)
-    show_gray(cropped)
-    im.imwrite(path_to_dataset + '/cropped/{}.png'.format(name), cropped)
+    # convert image to gray scale
+    img_gray = np.array(color.rgb2gray(image) * 255).astype('uint16')
+    # perform cropping on gray image
+    cropped, coords = crop_image(img_gray, track_progress=False)
+    show_gray(cropped, 'cropped')
+    # crop original image
+    cropped_original = image[coords[0]:coords[1], coords[2]:coords[3]]
+    # save it to file
+    im.imwrite(path_to_dataset + '/cropped/{}.png'.format(name), cropped_original)
 
-
+'''
 # demo which shows cropping one image
-# show_gray(crop_image(images[6], track_progress=True))
+img = images[2]
+img_gray = np.array(color.rgb2gray(img) * 255).astype('uint16')
+cropped, coords = crop_image(img_gray, track_progress=True)
+show_gray(img[coords[0]:coords[1], coords[2]:coords[3]])
+'''

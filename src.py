@@ -9,7 +9,7 @@ import matplotlib.patches as mpatches
 from skimage import color, filters, exposure, feature, morphology, segmentation, measure
 
 # load data
-path_to_dataset = '/Users/michal/PycharmProjects/bacteria_colony_counter/dataset/cropped/*.png'
+path_to_dataset = '/Users/michal/PycharmProjects/bacteria_colony_counter/dataset/*.jpg'
 
 images = {}  # dictionary to keep images
 paths = glob(path_to_dataset)
@@ -32,31 +32,52 @@ for image in images.values():
     print(np.unique(image))
 '''
 
-
+track_changes = False
 
 image_original = images[1]
 im = image_original
-show_gray(im, 'normal')
+print(im.shape)
 
-im = exposure.equalize_adapthist(im)
-show_gray(im, 'equal')
+for i in range(0, im.shape[2]):
+    channel = im[:, :, i]
 
-im = filters.median(im)
-im = filters.median(im)
-show_gray(im, 'median')
+    channel = exposure.equalize_adapthist(channel)
+    if track_changes:
+        show_gray(im, 'equal')
 
-im_otsu = filters.threshold_otsu(im)
-im = im > im_otsu
-show_gray(im, 'thresh')
+    channel = filters.median(channel)
+    if track_changes:
+        show_gray(im, 'median')
 
-im = morphology.binary_closing(im)
-show_gray(im, 'dilated')
+    channel = np.where(channel > 100, channel, 0)
+    channel = np.where(channel < 201, channel, 0)
+    print(np.unique(channel))
+    show_gray(channel, i)
+    plt.hist(channel.ravel(), bins=265, range=[0, 255])
+    plt.show()
 
+
+
+'''
+#im_otsu = filters.threshold_otsu(im)
+#im = im > im_otsu
+
+
+
+if track_changes:
+    show_gray(im, 'thresh')
+'''
+
+
+'''
 im = segmentation.clear_border(im)
-show_gray(im, 'noborder')
+if track_changes:
+    show_gray(im, 'noborder')
 
 im = morphology.erosion(im)
-show_gray(im, 'eroded')
+if track_changes:
+    show_gray(im, 'eroded')
+
 
 labels = measure.label(im)
 image_label_overlay = color.label2rgb(labels, image=im)
@@ -65,6 +86,7 @@ ax.imshow(image_original)
 
 for region in measure.regionprops(labels):
     # take regions with large enough areas
+    # print(region.area)
     if region.area >= 10:
         # draw rectangle around segmented coins
         minr, minc, maxr, maxc = region.bbox
@@ -75,9 +97,7 @@ for region in measure.regionprops(labels):
 ax.set_axis_off()
 plt.tight_layout()
 plt.show()
-
-
-
+'''
 
 
 
@@ -87,41 +107,18 @@ for region in measure.regionprops(labels):
         print(prop, region[prop])
 '''
 
-
-#im = morphology.erosion(im)
-#show_gray(im, 'eroded')
-
-
 '''
-
-blobs_log = feature.blob_log(im, max_sigma=10, num_sigma=10, threshold=.1)
+blobs_log = feature.blob_log(im, max_sigma=15, min_sigma=10, threshold=.15)
 blobs_log[:, 2] = blobs_log[:, 2] * np.sqrt(2)
 print(blobs_log)
 ax, fig = plt.subplots(1, 1)
-ax = plt.imshow(im)
+ax = plt.imshow(image_original)
 for blob in blobs_log:
-    y, x, r = blob
-    c = plt.Circle((x, y), r, color='red', linewidth=2, fill=False)
-    fig.add_patch(c)
+    if blob[2] > 1.5:
+        y, x, r = blob
+        c = plt.Circle((x, y), r, color='red', linewidth=2, fill=False)
+        fig.add_patch(c)
 plt.title('blobs')
 plt.show()
-'''
-
-'''
-for name, image in images.items():
-    fig, axes = plt.subplots(nrows=2, ncols=2)
-
-    axes[0][0].imshow(image, cmap='gray')
-
-    hist = ndi.histogram(image, bins=256, min=0, max=255)
-    axes[1][0].plot(hist)
-
-    thresholds = skimage.filters.(image)
-    regions = np.digitize(image, bins=thresholds)
-    axes[0][1].imshow(regions, cmap='gray')
-
-
-    plt.title(name)
-    fig.show()
 '''
 
