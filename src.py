@@ -1,10 +1,14 @@
 import imageio as im
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.patches as mpatches
-from skimage import color, filters, exposure, morphology, measure, segmentation, transform
+from skimage import color, filters, exposure, morphology, measure, segmentation, draw
 from glob import glob
 from helpers import show_gray
+from sklearn import cluster
+import pandas as pd
+
 
 # load data
 path_to_dataset = '/Users/michal/PycharmProjects/bacteria_colony_counter/dataset/cropped/*.png'
@@ -20,15 +24,8 @@ for path in paths:
     images.update({name: image})
     print(name, image.shape)
 
-# perform filtering
-
-track_changes = True
-
-'''
-# check depth of images -> [0, 255]
-for image in images.values():
-    print(np.unique(image))
-'''
+# mark if you want to track changes
+track_changes = False
 
 '''
 # print histograms of each channel
@@ -52,6 +49,12 @@ for i in range(0, im.shape[2]):
     plt.show()
 '''
 
+'''
+# check depth of images to consider histogram equalisation -> [0, 255]
+for image in images.values():
+    print(np.unique(image))
+'''
+
 # convert images to gray scale and equalise with median filtering
 for name, img in images.items():
 
@@ -69,37 +72,47 @@ for name, img in images.items():
 
     images[name] = img
 
-# select photo to process
-image_original = images[6]
+#####                 #####
+####                   ####
+###                     ###
+##                       ##
+# select photo to process #
+image_original = images[1]
 im = image_original
 if track_changes:
     show_gray(im, 'orig')
+#                         #
+##                       ##
+###                     ###
+####                   ####
+#####                 #####
 
-# threshold image
-
-#fig, ax = filters.try_all_threshold(im, figsize=(20, 16), verbose=False)
-#plt.show()
-
+# apply top hat transform
 im = filters.rank.tophat(im, morphology.disk(5))
 
 if track_changes:
     show_gray(im, 'tophat')
 
+# threshold image
 thresh = filters.threshold_otsu(im)
 im = im > thresh
 
 if track_changes:
     show_gray(im, 'otsu')
 
+# clear borders of image
 im = segmentation.clear_border(im)
 if track_changes:
     show_gray(im, 'no border')
 
+# apply morphology opening
 im = morphology.opening(im)
 if track_changes:
     show_gray(im, 'opened')
 
+
 '''
+# to delete
 contours = measure.find_contours(im, 0.1)
 
 fig, ax = plt.subplots()
@@ -111,37 +124,75 @@ plt.axis('off')
 plt.show()
 '''
 
-
+# label object on the image
 labels = measure.label(im)
+new_labels = np.array(labels)
 
 #image_label_overlay = color.label2rgb(labels, image=image_original)
 #show_gray(image_label_overlay)
 
-#fig, ax = plt.subplots()
-new_labels = np.array(labels)
+fig, ax = plt.subplots()
+ax.imshow(image_original)
+
+# initialise dictionary to keep candidates
+candidates_attributes = []
+
+# iterate through all detected regions
 for region in measure.regionprops(labels):
-    # take regions with large enough areas
+
+    # calculate region of area and its squareability to deny non candidates regions
     minr, minc, maxr, maxc = region.bbox
     squareability_bbox = (maxc - minc) / (maxr - minr)
     relative_area_bbox = region.area/(image_original.shape[0] * image_original.shape[1])
-    if 0.01 > relative_area_bbox >= 0.0001 and 1.5 >= squareability_bbox >= 0.7:
-        #rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor='red', linewidth=2)
-        #ax.add_patch(rect)
-        new_labels = np.where(new_labels == region.label, 1, new_labels)
+
+    # if region is a candidate save its attributes and mask of image
+    if 0.001 > relative_area_bbox >= 0.0001 and 1.5 >= squareability_bbox >= 0.7:
+        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor='red', linewidth=2)
+        ax.add_patch(rect)
+        candidates_attributes.append([region.label, region.area, region.convex_area, region.extent])
+        #new_labels = np.where(new_labels == region.label, 1, new_labels)
+    # if no - delete it
     else:
         new_labels = np.where(new_labels == region.label, 0, new_labels)
 
-#ax.set_axis_off()
-#plt.tight_layout()
-#plt.show()
+ax.set_axis_off()
+plt.tight_layout()
+plt.show()
 
 
-print(new_labels.shape)
-show_gray(new_labels)
+show_gray(new_labels >= 1)
 
-# Detect biggest radius on the image
-hough_radius = np.arange(5, 100, 2)
-hough_residua = transform.hough_circle(image, hough_radius)
-_, cx, cy, r = transform.hough_circle_peaks(hough_residua, hough_radius, total_num_peaks=1)
+# convert attributes to pandas dataframe
+candidates_attributes = pd.DataFrame(data=candidates_attributes, columns=['label', 'area', 'convex_area', 'extent'])
 
+# perform clustering of candidates
+km = cluster.KMeans(init='random', n_init=10, max_iter=300)
+pred = km.fit(candidates_attributes[['area', 'convex_area', 'extent']])
+
+# update candidates dataframe by cluster label
+candidates_attributes['class'] = pred.labels_
+
+# visualise clustering effect
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(candidates_attributes.area, candidates_attributes.convex_area, candidates_attributes.extent, marker='o',
+           c=candidates_attributes['class'])
+ax.set_xlabel('area')
+ax.set_ylabel('convex area')
+ax.set_zlabel('extent')
+ax.set_title('Clustering effect')
+plt.tight_layout()
+plt.show()
+
+
+# plot classes on the image
+fig, ax = plt.subplots()
+ax.imshow(image_original)
+for region in measure.regionprops(new_labels):
+    minr, minc, maxr, maxc = region.bbox
+    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor='red', linewidth=2)
+    ax.add_patch(rect)
+ax.set_axis_off()
+plt.tight_layout()
+plt.show()
 

@@ -36,7 +36,7 @@ for name, image in tqdm(images.items()):
 
 '''
 # demo which shows cropping one image
-img = images[2]
+img = images[6]
 img_gray = np.array(color.rgb2gray(img) * 255).astype('uint16')
 cropped, coords = crop_image(img_gray, track_progress=True)
 show_gray(img[coords[0]:coords[1], coords[2]:coords[3]])
