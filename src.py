@@ -9,6 +9,8 @@ from helpers import show_gray
 from sklearn import cluster
 import pandas as pd
 
+# mark if you want to track changes
+track_changes = True
 
 # load data
 path_to_dataset = '/Users/michal/PycharmProjects/bacteria_colony_counter/dataset/cropped/*.png'
@@ -23,9 +25,6 @@ for path in paths:
     image = im.imread(path)
     images.update({name: image})
     print(name, image.shape)
-
-# mark if you want to track changes
-track_changes = False
 
 '''
 # print histograms of each channel
@@ -128,12 +127,6 @@ plt.show()
 labels = measure.label(im)
 new_labels = np.array(labels)
 
-#image_label_overlay = color.label2rgb(labels, image=image_original)
-#show_gray(image_label_overlay)
-
-fig, ax = plt.subplots()
-ax.imshow(image_original)
-
 # initialise dictionary to keep candidates
 candidates_attributes = []
 
@@ -146,27 +139,21 @@ for region in measure.regionprops(labels):
     relative_area_bbox = region.area/(image_original.shape[0] * image_original.shape[1])
 
     # if region is a candidate save its attributes and mask of image
-    if 0.001 > relative_area_bbox >= 0.0001 and 1.5 >= squareability_bbox >= 0.7:
-        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor='red', linewidth=2)
-        ax.add_patch(rect)
+    if 0.002 > relative_area_bbox >= 0.0002 and 1.3 >= squareability_bbox >= 0.7:
+        print(relative_area_bbox, squareability_bbox)
         candidates_attributes.append([region.label, region.area, region.convex_area, region.extent])
-        #new_labels = np.where(new_labels == region.label, 1, new_labels)
     # if no - delete it
     else:
         new_labels = np.where(new_labels == region.label, 0, new_labels)
 
-ax.set_axis_off()
-plt.tight_layout()
-plt.show()
-
-
-show_gray(new_labels >= 1)
+if track_changes:
+    show_gray(new_labels >= 1, 'candidates')
 
 # convert attributes to pandas dataframe
 candidates_attributes = pd.DataFrame(data=candidates_attributes, columns=['label', 'area', 'convex_area', 'extent'])
 
 # perform clustering of candidates
-km = cluster.KMeans(init='random', n_init=10, max_iter=300)
+km = cluster.KMeans(init='random', n_init=5, max_iter=300)
 pred = km.fit(candidates_attributes[['area', 'convex_area', 'extent']])
 
 # update candidates dataframe by cluster label
@@ -184,15 +171,17 @@ ax.set_title('Clustering effect')
 plt.tight_layout()
 plt.show()
 
-
 # plot classes on the image
 fig, ax = plt.subplots()
 ax.imshow(image_original)
-for region in measure.regionprops(new_labels):
+num_clusters = candidates_attributes['class'].max()
+for region, cluster_class in zip(measure.regionprops(new_labels), np.array(candidates_attributes[['class']])):
     minr, minc, maxr, maxc = region.bbox
-    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor='red', linewidth=2)
+    color = [float(cluster_class / num_clusters), float(cluster_class / num_clusters),
+             float(cluster_class / num_clusters)]
+
+    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor=color, linewidth=2)
     ax.add_patch(rect)
 ax.set_axis_off()
-plt.tight_layout()
+plt.title('Results: {} colonies'.format(len(candidates_attributes)))
 plt.show()
-
